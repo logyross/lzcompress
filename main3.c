@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define WINDOW_SIZE 12 
-#define SEARCHBUF_SIZE 7 
+#define WINDOW_SIZE 5000 
+#define SEARCHBUF_SIZE 1250 
 #define LOOKAHEADBUF_SIZE WINDOW_SIZE - SEARCHBUF_SIZE /* the front end of the sliding window */
 
 #define SEARCHBUF_INDEX 0
@@ -57,12 +57,9 @@ int lz77_free(struct lz77_encoder *encoder)
 int lz77_slide_window(struct lz77_encoder *encoder, int amount)
 {
 	while (amount-- > 0) {
-		char s;
-		fread(&s, 1, 1, encoder->input_stream);
+		int s;
+		s = getc(encoder->input_stream);
 		/* end of file before amount reached, return bytes left. */
-		if (s == EOF) {
-			return amount;
-		}
 		for (int i = 0; i < WINDOW_SIZE-1; i++) {
 			encoder->sliding_window[i] = encoder->sliding_window[i+1];
 		}
@@ -74,7 +71,7 @@ int lz77_slide_window(struct lz77_encoder *encoder, int amount)
 
 void print_encoding_tuple(struct lz77_encoding_tuple tuple)
 {
-	printf("(%d,%d,%c)\n", tuple.offset, tuple.length, tuple.symbol);
+	printf("(%d,%d,%c)", tuple.offset, tuple.length, tuple.symbol);
 }
 
 void print_sliding_window(struct lz77_encoder *encoder)
@@ -99,7 +96,7 @@ struct lz77_encoding_tuple lz77_search_match(struct lz77_encoder *encoder)
 	int longest_match = 0;
 	int longest_match_offset = 0;
 	char last_symbol = '\0';
-	/* longest occurence of a 0 indexed substring of lookahead buffer inside search buffer. */
+	/* longest occurence of a substring of lookahead buffer inside search buffer. */
 	for (int i = SEARCHBUF_INDEX; i < SEARCHBUF_SIZE; i++) {
 		char *lookahead_p = encoder->sliding_window + LOOKAHEADBUF_INDEX;
 		char *search_p = encoder->sliding_window + i;
@@ -123,36 +120,15 @@ struct lz77_encoding_tuple lz77_search_match(struct lz77_encoder *encoder)
 
 int main()
 {
-	struct lz77_encoder *encoder = lz77_init("test.txt");
+	struct lz77_encoder *encoder = lz77_init("bigfile.txt");
 	struct lz77_encoding_tuple tup = lz77_search_match(encoder);
-	print_sliding_window(encoder);
-	print_encoding_tuple(tup);
-	lz77_slide_window(encoder, tup.length+1);
+	do{
+		//print_sliding_window(encoder);
+		print_encoding_tuple(tup);
 
-	print_sliding_window(encoder);
-	tup = lz77_search_match(encoder);
-	print_encoding_tuple(tup);
-	lz77_slide_window(encoder, tup.length+1);
-
-	print_sliding_window(encoder);
-	tup = lz77_search_match(encoder);
-	print_encoding_tuple(tup);
-	lz77_slide_window(encoder, tup.length+1);
-
-	print_sliding_window(encoder);
-	tup = lz77_search_match(encoder);
-	print_encoding_tuple(tup);
-	lz77_slide_window(encoder, tup.length+1);
-
-	print_sliding_window(encoder);
-	tup = lz77_search_match(encoder);
-	print_encoding_tuple(tup);
-	lz77_slide_window(encoder, tup.length+1);
-
-	print_sliding_window(encoder);
-	tup = lz77_search_match(encoder);
-	print_encoding_tuple(tup);
-	lz77_slide_window(encoder, tup.length+1);
+		lz77_slide_window(encoder, tup.length+1);
+		tup = lz77_search_match(encoder);
+	} while (encoder->sliding_window[LOOKAHEADBUF_INDEX+1] != EOF); 
 
 	lz77_free(encoder);
 	return 0;
