@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
-#define WINDOW_SIZE 5000 
-#define SEARCHBUF_SIZE 1250 
+#define WINDOW_SIZE 12
+#define SEARCHBUF_SIZE 7 
 #define LOOKAHEADBUF_SIZE WINDOW_SIZE - SEARCHBUF_SIZE /* the front end of the sliding window */
+#define LENGTH_BITS 4 /* MUST BE log2(WINDOW_SIZE) rounded up */
+#define OFFSET_BITS 3 /* MUST BE log2(SEARCHBUF_SIZE) rounded up */
 
 #define SEARCHBUF_INDEX 0
 #define LOOKAHEADBUF_INDEX SEARCHBUF_SIZE
@@ -15,9 +18,9 @@ struct lz77_encoder {
 };
 
 struct lz77_encoding_tuple {
-	int offset;
-	int length;
-	char symbol;
+	unsigned int offset : OFFSET_BITS;
+	unsigned int length : LENGTH_BITS;
+	unsigned int symbol : 8;
 };
 	
 struct lz77_encoder *lz77_init(char *filename)
@@ -71,7 +74,7 @@ int lz77_slide_window(struct lz77_encoder *encoder, int amount)
 
 void print_encoding_tuple(struct lz77_encoding_tuple tuple)
 {
-	printf("(%d,%d,%c)", tuple.offset, tuple.length, tuple.symbol);
+	printf("(%d,%d,%c)\n", tuple.offset, tuple.length, tuple.symbol);
 }
 
 void print_sliding_window(struct lz77_encoder *encoder)
@@ -118,16 +121,22 @@ struct lz77_encoding_tuple lz77_search_match(struct lz77_encoder *encoder)
 	return result;
 }
 
+void lz77_encode(struct lz77_encoding_tuple tup)
+{
+       printf("%d%d%d",tup.offset, tup.length, tup.symbol);
+}
+
 int main()
 {
-	struct lz77_encoder *encoder = lz77_init("bigfile.txt");
+	struct lz77_encoder *encoder = lz77_init("test.txt");
 	struct lz77_encoding_tuple tup = lz77_search_match(encoder);
 	do{
 		//print_sliding_window(encoder);
-		print_encoding_tuple(tup);
+		//print_encoding_tuple(tup);
 
 		lz77_slide_window(encoder, tup.length+1);
 		tup = lz77_search_match(encoder);
+		lz77_encode(tup);
 	} while (encoder->sliding_window[LOOKAHEADBUF_INDEX+1] != EOF); 
 
 	lz77_free(encoder);
