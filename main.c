@@ -25,6 +25,7 @@ struct lz77_encoder {
 struct lz77_decoder {
 	FILE *input_stream;
 	FILE *output_stream;
+	char *sliding_window;
 };
 
 struct lz77_encoding_tuple {
@@ -84,6 +85,19 @@ int lz77_slide_window(struct lz77_encoder *encoder, int amount)
 	return 0;
 }
 
+int lz77_decoder_slide_window(struct lz77_decoder *decoder, int amount)
+{
+	while (amount-- > 0) {
+		/* end of file before amount reached, return bytes left. */
+		for (int i = 0; i < WINDOW_SIZE - 1; i++) {
+			decoder->sliding_window[i] =
+				decoder->sliding_window[i + 1];
+		}
+		decoder->sliding_window[WINDOW_SIZE] = EOF;
+	}
+	return 0;
+}
+
 void print_encoding_tuple(struct lz77_encoding_tuple tuple)
 {
 	printf("(%d,%d,%c)\n", tuple.offset, tuple.length, tuple.symbol);
@@ -98,13 +112,24 @@ void print_sliding_window(struct lz77_encoder *encoder)
 			printf("%c", encoder->sliding_window[i]);
 	}
 
-	printf("|");
+	//printf("|");
 
 	for (int i = LOOKAHEADBUF_INDEX; i < WINDOW_SIZE; i++) {
 		printf("%c", encoder->sliding_window[i]);
 	}
 	printf("\n");
 }
+void print_sliding_window_decoder(struct lz77_decoder *decoder)
+{
+	for (int i = 0; i < WINDOW_SIZE; i++) {
+		if (decoder->sliding_window[i] == '\0')
+			printf("_");
+		else
+			printf("%c", decoder->sliding_window[i]);
+	}
+	printf("\n");
+}
+
 
 struct lz77_encoding_tuple lz77_search_match(struct lz77_encoder *encoder)
 {
@@ -162,11 +187,13 @@ void lz77_compress(char *input_filename, char *output_filename)
 	struct lz77_encoder *encoder =
 		lz77_init(input_filename, output_filename);
 	struct lz77_encoding_tuple tup = lz77_search_match(encoder);
+
 	do {
 		//print_sliding_window(encoder);
 		//print_encoding_tuple(tup);
 		lz77_encode(tup, encoder);
 		lz77_slide_window(encoder, tup.length + 1);
+		//printf("(%d,%d)%c\n", tup.offset, tup.length, tup.symbol);
 		tup = lz77_search_match(encoder);
 	} while (encoder->sliding_window[LOOKAHEADBUF_INDEX + 1] != EOF);
 
@@ -184,6 +211,8 @@ struct lz77_decoder *lz77_decoder_init(char *input_filename,
 	if (decoder->input_stream == NULL || decoder->output_stream == NULL)
 		return NULL;
 
+	decoder->sliding_window = malloc(WINDOW_SIZE + 1);
+	decoder->sliding_window[WINDOW_SIZE] = EOF;
 	return decoder;
 }
 
@@ -191,21 +220,25 @@ int lz77_decoder_free(struct lz77_decoder *decoder)
 {
 	fclose(decoder->input_stream);
 	fclose(decoder->output_stream);
+	free(decoder->sliding_window);
 	free(decoder);
 	return 0;
 }
 
 void lz77_decompress(char *input_filename, char *output_filename)
 {
+	int error_times = 0;
 	struct lz77_decoder *decoder =
 		lz77_decoder_init(input_filename, output_filename);
 	int encoding_bits = LENGTH_BITS + OFFSET_BITS + SYMBOL_BITS;
 	int encoding_bytes = (encoding_bits + 8 - 1) / 8;
 	char encoding[encoding_bytes];
-	do {
+	while (!feof(decoder->input_stream)) {
 		struct lz77_encoding_tuple tup;
-		fread(encoding, sizeof(char), encoding_bytes,
+		int red = fread(encoding, sizeof(char), encoding_bytes,
 		      decoder->input_stream);
+		if (red != encoding_bytes)
+			break;
 		tup.symbol=encoding[encoding_bytes - 1];
 
 		char *ep = encoding;
@@ -217,18 +250,42 @@ void lz77_decompress(char *input_filename, char *output_filename)
 		}
 		unsigned int bitmask = -1;
 		tup.length = payload & (bitmask >> OFFSET_BITS);
-
-		//int length = payload << OFFSET_BITS;
 		tup.offset = payload >> LENGTH_BITS;
-		printf("(%d,%d)%c\n", tup.offset, tup.length, tup.symbol);
-	} while (!feof(decoder->input_stream));
+		//printf("(%d,%d)%c\n", tup.offset, tup.length, tup.symbol);
+		
+		char *offp = decoder->sliding_window + WINDOW_SIZE - tup.offset;
+		times = tup.length;
+		
+		while (times--) {
+			char c = *offp;
+			//putc(c, decoder->output_stream);
+			if (c == 0)
+				error_times++;
+			fwrite(&c, sizeof(char), 1, decoder->output_stream);
+			lz77_decoder_slide_window(decoder, 1);
+			decoder->sliding_window[WINDOW_SIZE - 1] = c;
+			//print_sliding_window_decoder(decoder);
+		}
+		
+		lz77_decoder_slide_window(decoder, 1);
+		decoder->sliding_window[WINDOW_SIZE - 1] = tup.symbol;
+		//print_sliding_window_decoder(decoder);
+		//putc(tup.symbol, decoder->output_stream);
+		char c = tup.symbol;
+		if (c == 0)
+			error_times++;
+
+		fwrite(&c, sizeof(char), 1, decoder->output_stream);			
+	}
 	lz77_decoder_free(decoder);
+	printf("error times-> %d\n", error_times);
 }
 
 int main()
 {
 	//struct lz77_encoder *encoder = lz77_init("bigfile2.txt", "bigfile2.txt.lz");
-	lz77_compress("bigfile2.txt", "bigfile2.txt.lz");
-	//lz77_decompress("test.txt.lz", "test.txt.out");
+	lz77_compress("smallfile.txt", "a");
+	//printf("---\n");
+	lz77_decompress("a", "aa");
 	return 0;
 }
