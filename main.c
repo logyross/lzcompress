@@ -134,6 +134,8 @@ void print_sliding_window_decoder(struct lz77_decoder *decoder)
 }
 
 
+// FIXME: possible problem here, probably something like off by one 
+
 struct lz77_encoding_tuple lz77_search_match(struct lz77_encoder *encoder)
 {
 	int longest_match = 0;
