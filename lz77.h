@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-int compress(FILE *f);
+int compress(char *in, char *out);
 int decompress(FILE *f);
 
 #endif

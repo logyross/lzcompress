@@ -1,13 +1,139 @@
+#include <stdlib.h>
 
 #include "lz77.h"
 
-int compress(FILE *f)
+
+
+#define WINDOW_SIZE 12
+//#define WINDOW_SIZE 1024
+#define SEARCHBUF_SIZE 7
+//#define SEARCHBUF_SIZE 512
+#define LOOKAHEADBUF_SIZE \
+	WINDOW_SIZE - SEARCHBUF_SIZE /* the front end of the sliding window */
+//#define LENGTH_BITS 10 /* MUST BE log2(WINDOW_SIZE) rounded up */
+//#define OFFSET_BITS 9 /* MUST BE log2(SEARCHBUF_SIZE) rounded up */
+#define LENGTH_BITS 4 /* MUST BE log2(WINDOW_SIZE) rounded up */
+#define OFFSET_BITS 3 /* MUST BE log2(SEARCHBUF_SIZE) rounded up */
+#define SYMBOL_BITS 8
+
+#define SEARCHBUF_INDEX 0
+#define LOOKAHEADBUF_INDEX SEARCHBUF_SIZE
+
+
+struct lz77_context {
+	FILE *input_stream;
+	FILE *output_stream;
+	char *sliding_window;
+
+	struct lz77_encoding {
+		unsigned int offset : OFFSET_BITS;
+		unsigned int length : LENGTH_BITS;
+		unsigned int symbol : SYMBOL_BITS;
+	} encoding;
+
+	enum lz77_status {
+		NO_ERROR,
+		MALLOC_ERROR,
+		INPUT_STREAM_ERROR,
+		OUTPUT_STREAM_ERROR,
+		INPUT_EOF
+	} status;
+};
+
+typedef struct lz77_context lz77;
+
+lz77 *lz77_init(char *in, char *out)
 {
-	int c = getc(f);
-	while (c  != EOF) {
-		putchar(c);
-		c = getc(f);
+	lz77 *context = malloc(sizeof(lz77));
+	if (context == NULL)
+		return NULL;
+	
+	context->input_stream = fopen(in, "r");
+	if (context->input_stream == NULL) {
+		context->status = INPUT_STREAM_ERROR;
+		return context;
 	}
+
+	context->output_stream = fopen(out, "w");
+	if (context->output_stream == NULL) {
+		context->status = OUTPUT_STREAM_ERROR;
+		return context;
+	}
+
+	context->sliding_window = malloc(WINDOW_SIZE + 1);
+
+	if (context->sliding_window == NULL) {
+		context->status = MALLOC_ERROR;
+		return context;
+	}
+
+	for (int i = 0; i < SEARCHBUF_SIZE; i++)
+		context->sliding_window[i] = '\0';
+
+	int readed = fread(context->sliding_window + LOOKAHEADBUF_INDEX,
+			   sizeof(char), LOOKAHEADBUF_SIZE,
+			   context->input_stream);
+	
+	if (readed < LOOKAHEADBUF_SIZE)
+		context->status = INPUT_EOF;
+	else
+		context->status = NO_ERROR;
+
+	return context;
+}
+
+void lz77_handle_error(enum lz77_status status)
+{
+	switch (status) {
+	case MALLOC_ERROR:
+		fprintf(stderr, "Error: Failed to allocate memory.\n");
+		break;
+	case INPUT_STREAM_ERROR:
+		fprintf(stderr, "Error: Failed to open input file.\n");
+		break;
+	case OUTPUT_STREAM_ERROR:
+		fprintf(stderr, "Error: Failed to create or open output file.\n");
+		break;
+	case INPUT_EOF:
+		fprintf(stderr, "Error: File too small to compress.\n");
+		break;
+	default:
+		fprintf(stderr, "Error: unknown error. \n");
+	}
+}
+
+void lz77_free(lz77 *context)
+{
+	if (context->sliding_window != NULL)
+		free(context->sliding_window);
+	if (context->input_stream != NULL)
+		fclose(context->input_stream);
+	if (context->output_stream != NULL)
+		fclose(context->output_stream);
+
+	free(context);
+}
+
+
+int compress(char *in, char *out)
+{
+	lz77 *encoder = lz77_init(in, out);
+	if (encoder->status != NO_ERROR) {
+		lz77_handle_error(encoder->status);
+		lz77_free(encoder);
+		return 1;
+	}
+	// while look ahead buff is not empty
+	// find longest match inside search buffer
+	// if match is found
+	//      encode offset, length, next symbol in look ahead after match
+	//      shift window by match_length + 1
+	// else
+	//      encode 0, 0, first symbol in look ahead
+	//      shift window by 1
+	// end while
+	
+	lz77_free(encoder);
 	return 0;
 }
 
