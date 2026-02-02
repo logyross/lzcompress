@@ -164,9 +164,10 @@ void lz77_read(lz77 *context, int amount)
 {
 	char *str = malloc(sizeof(char) * amount + 1);
 
-
 	int rd = fread(str, sizeof(char), amount, context->input_stream);
-	str[amount] = '\0';
+
+	
+	str[rd] = '\0';
 	if (rd < amount)
 		context->status = INPUT_EOF;
 
@@ -196,13 +197,14 @@ int compress(char *in, char *out)
 		return 1;
 	}
 
-	while (*(encoder->sliding_window + LOOKAHEADBUF_INDEX) != '\256') {
+	while (*(encoder->sliding_window + LOOKAHEADBUF_INDEX) != '\0') {
 		lz77_search(encoder);
 		printf("(%d,%d) %c\n", encoder->encoding.offset,
 		       encoder->encoding.length, encoder->encoding.symbol);
 		lz77_slide(encoder->sliding_window,
 			   encoder->encoding.length + 1);
-		lz77_read(encoder, encoder->encoding.length + 1);
+		if (encoder->status != INPUT_EOF)
+			lz77_read(encoder, encoder->encoding.length + 1);
 	}
 	// while look ahead buff is not empty
 	// find longest match inside search buffer
