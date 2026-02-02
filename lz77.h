@@ -4,6 +4,6 @@
 #include <stdio.h>
 
 int compress(char *in, char *out);
-int decompress(FILE *f);
+int decompress(char *in, char *out);
 
 #endif

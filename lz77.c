@@ -42,7 +42,7 @@ struct lz77_context {
 
 typedef struct lz77_context lz77;
 
-lz77 *lz77_init(char *in, char *out)
+lz77 *lz77_encode_init(char *in, char *out)
 {
 	lz77 *context = malloc(sizeof(lz77));
 	if (context == NULL)
@@ -84,6 +84,40 @@ lz77 *lz77_init(char *in, char *out)
 	return context;
 }
 
+lz77 *lz77_decode_init(char *in, char *out)
+{
+	lz77 *context = malloc(sizeof(lz77));
+	if (context == NULL) {
+		context->status = INPUT_STREAM_ERROR;
+		return context;
+	}
+	context->input_stream = fopen(in, "r");
+	if (context->input_stream == NULL) {
+		context->status = INPUT_STREAM_ERROR;
+		return context;
+	}
+
+	context->output_stream = fopen(out, "w");
+	if (context->output_stream == NULL) {
+		context->status = OUTPUT_STREAM_ERROR;
+		return context;
+	}
+
+	context->sliding_window = malloc(WINDOW_SIZE + 1);
+
+	if (context->sliding_window == NULL) {
+		context->status = MALLOC_ERROR;
+		return context;
+	}
+
+
+	context->sliding_window[WINDOW_SIZE] = '\0';
+	context->status = NO_ERROR;
+	
+	return context;
+}
+
+
 void lz77_handle_error(enum lz77_status status)
 {
 	switch (status) {
@@ -96,9 +130,9 @@ void lz77_handle_error(enum lz77_status status)
 	case OUTPUT_STREAM_ERROR:
 		fprintf(stderr, "Error: Failed to create or open output file.\n");
 		break;
-	case INPUT_EOF:
-		fprintf(stderr, "Error: File too small to compress.\n");
-		break;
+	/* case INPUT_EOF: */
+	/* 	fprintf(stderr, "Error: File too small to compress.\n"); */
+	/* 	break; */
 	default:
 		fprintf(stderr, "Error: unknown error. \n");
 	}
@@ -160,6 +194,20 @@ void lz77_slide(char *window, int amount)
 	}
 }
 
+int lz77_decoder_slide_window(lz77 *decoder, int amount)
+{
+	while (amount-- > 0) {
+		/* end of file before amount reached, return bytes left. */
+		for (int i = 0; i < WINDOW_SIZE - 1; i++) {
+			decoder->sliding_window[i] =
+				decoder->sliding_window[i + 1];
+		}
+		decoder->sliding_window[WINDOW_SIZE] = EOF;
+	}
+	return 0;
+}
+
+
 void lz77_read(lz77 *context, int amount)
 {
 	char *str = malloc(sizeof(char) * amount + 1);
@@ -176,21 +224,45 @@ void lz77_read(lz77 *context, int amount)
 	
 
 
-	char *strp = str;
+	char *str_to_free = str;
 	while(*str != '\0' || *lookahead_buff != '\0') {
 		*lookahead_buff = *str;
 		str++;
 		lookahead_buff++;
 	}
 
-	free(strp);
+	free(str_to_free);
 }
 
+void lz77_write(lz77 *context)
+{
+	int encoding_bits = LENGTH_BITS + OFFSET_BITS + SYMBOL_BITS;
+	int encoding_bytes = (encoding_bits + 8 - 1) / 8;
+	char *payload = malloc(encoding_bytes);
+	int symbol_bits = SYMBOL_BITS;
+	char *pp = payload;
+	int times = encoding_bytes;
+	while (times--) {
+		*pp = ((((context->encoding.offset << LENGTH_BITS) |
+			 context->encoding.length)
+			<< symbol_bits) |
+		       context->encoding.symbol) >>
+		      times * 8;
+		
+		/* if (*pp == '\0') */
+		/* 	*pp = '\a'; */
+
+		pp++;
+	}
+	fwrite(payload, sizeof(char), encoding_bytes, context->output_stream);
+	free(payload);
+
+}
 
 
 int compress(char *in, char *out)
 {
-	lz77 *encoder = lz77_init(in, out);
+	lz77 *encoder = lz77_encode_init(in, out);
 	if (encoder->status != NO_ERROR) {
 		lz77_handle_error(encoder->status);
 		lz77_free(encoder);
@@ -201,6 +273,8 @@ int compress(char *in, char *out)
 		lz77_search(encoder);
 		printf("(%d,%d) %c\n", encoder->encoding.offset,
 		       encoder->encoding.length, encoder->encoding.symbol);
+		// write to output stream
+		lz77_write(encoder);
 		lz77_slide(encoder->sliding_window,
 			   encoder->encoding.length + 1);
 		if (encoder->status != INPUT_EOF)
@@ -220,12 +294,61 @@ int compress(char *in, char *out)
 	return 0;
 }
 
-int decompress(FILE *f)
+int decompress(char *in, char *out)
 {
-	int c = getc(f);
-	while (c != EOF) {
-		putchar(c);
-		c = getc(f);
+	lz77 *decoder = lz77_decode_init(in, out);
+	if (decoder->status != NO_ERROR) {
+		lz77_handle_error(decoder->status);
+		lz77_free(decoder);
+		return 1;
 	}
+
+	int encoding_bits = LENGTH_BITS + OFFSET_BITS + SYMBOL_BITS;
+	int encoding_bytes = (encoding_bits + 8 - 1) / 8;
+	char encoding[encoding_bytes];
+
+	while (!feof(decoder->input_stream)) {
+		int rd = fread(encoding, sizeof(char), encoding_bytes,
+		      decoder->input_stream);
+		if (rd != encoding_bytes)
+			break;
+		
+		decoder->encoding.symbol=encoding[encoding_bytes - 1];
+		
+		char *ep = encoding;
+		unsigned int payload = 0;
+		int times = encoding_bytes - 1;
+		while (times--) {
+			payload = (payload << 8) | *ep;
+			ep++;
+		}
+		unsigned int bitmask = -1;
+		decoder->encoding.length = payload & (bitmask >> OFFSET_BITS);
+		decoder->encoding.offset = payload >> LENGTH_BITS;
+
+		printf("(%d,%d)%c\n", decoder->encoding.offset,
+		       decoder->encoding.length, decoder->encoding.symbol);
+		
+		
+		char *offp = decoder->sliding_window + WINDOW_SIZE - decoder->encoding.offset;
+		times = decoder->encoding.length;
+
+		while (times--) {
+			char c = *offp;
+			fwrite(&c, sizeof(char), 1, decoder->output_stream);
+			lz77_decoder_slide_window(decoder, 1);
+			decoder->sliding_window[WINDOW_SIZE - 1] = c;
+
+		}
+
+		lz77_decoder_slide_window(decoder, 1);
+		decoder->sliding_window[WINDOW_SIZE - 1] = decoder->encoding.symbol;
+		//print_sliding_window_decoder(decoder);
+		//putc(tup.symbol, decoder->output_stream);
+		char c = decoder->encoding.symbol;
+		fwrite(&c, sizeof(char), 1, decoder->output_stream);
+
+	}
+	lz77_free(decoder);
 	return 0;
 }

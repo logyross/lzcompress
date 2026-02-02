@@ -3,6 +3,7 @@
 int main()
 {
 	compress("test.txt", "x");
+	decompress("x", "xx");
 	
 	return 0;
 }
