@@ -2,7 +2,7 @@
 
 int main()
 {
-	compress("test2.txt", "x");
+	compress("test.txt", "x");
 	
 	return 0;
 }

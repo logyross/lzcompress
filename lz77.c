@@ -73,6 +73,8 @@ lz77 *lz77_init(char *in, char *out)
 	int readed = fread(context->sliding_window + LOOKAHEADBUF_INDEX,
 			   sizeof(char), LOOKAHEADBUF_SIZE,
 			   context->input_stream);
+
+	*(context->sliding_window + LOOKAHEADBUF_SIZE + SEARCHBUF_SIZE) = '\0';
 	
 	if (readed < LOOKAHEADBUF_SIZE)
 		context->status = INPUT_EOF;
@@ -114,6 +116,76 @@ void lz77_free(lz77 *context)
 	free(context);
 }
 
+void lz77_search(lz77 *context)
+{
+	int longest_match = 0;
+	int longest_match_offset = 0;
+	char last_symbol = '\0';
+
+	for (int i = SEARCHBUF_INDEX; i < SEARCHBUF_SIZE; i++) {
+		char *lookahead_p = context->sliding_window + LOOKAHEADBUF_INDEX;
+		char *search_p = context->sliding_window + i;
+		int curr_match = 0;
+		while (*lookahead_p != EOF && *lookahead_p == *search_p) {
+			lookahead_p++;
+			search_p++;
+			curr_match++;
+		}
+		if (curr_match >= longest_match) {
+			longest_match = curr_match;
+			longest_match_offset = SEARCHBUF_SIZE - i;
+			last_symbol = *lookahead_p;
+		}
+	}
+
+	if (longest_match == 0)
+		longest_match_offset = 0;
+
+	context->encoding.offset = longest_match_offset;
+	context->encoding.length = longest_match;
+	context->encoding.symbol = last_symbol;
+	
+	return;	
+}
+
+void lz77_slide(char *window, int amount)
+{
+	while (amount-- > 0) {
+		/* end of file before amount reached, return bytes left. */
+		
+		for (int i = 0; i < WINDOW_SIZE-1; i++) {
+			window[i] = window[i + 1];
+		}
+		window[WINDOW_SIZE-1] = '\0';
+	}
+}
+
+void lz77_read(lz77 *context, int amount)
+{
+	char *str = malloc(sizeof(char) * amount + 1);
+
+
+	int rd = fread(str, sizeof(char), amount, context->input_stream);
+	str[amount] = '\0';
+	if (rd < amount)
+		context->status = INPUT_EOF;
+
+	char *lookahead_buff = context->sliding_window + SEARCHBUF_SIZE +
+			       LOOKAHEADBUF_SIZE - amount;
+	
+
+
+	char *strp = str;
+	while(*str != '\0' || *lookahead_buff != '\0') {
+		*lookahead_buff = *str;
+		str++;
+		lookahead_buff++;
+	}
+
+	free(strp);
+}
+
+
 
 int compress(char *in, char *out)
 {
@@ -122,6 +194,15 @@ int compress(char *in, char *out)
 		lz77_handle_error(encoder->status);
 		lz77_free(encoder);
 		return 1;
+	}
+
+	while (*(encoder->sliding_window + LOOKAHEADBUF_INDEX) != '\256') {
+		lz77_search(encoder);
+		printf("(%d,%d) %c\n", encoder->encoding.offset,
+		       encoder->encoding.length, encoder->encoding.symbol);
+		lz77_slide(encoder->sliding_window,
+			   encoder->encoding.length + 1);
+		lz77_read(encoder, encoder->encoding.length + 1);
 	}
 	// while look ahead buff is not empty
 	// find longest match inside search buffer
