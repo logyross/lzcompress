@@ -37,7 +37,7 @@ struct lz77_encoding_tuple {
 
 /* SEVEN SPACES + LETTER ->   ^@ WHY THO */
 
-struct lz77_encoder *lz77_init(char *filename, char *outfile)
+struct lz77_encoder *lz77_encode_init(char *filename, char *outfile)
 {
 	struct lz77_encoder *encoder = malloc(sizeof(struct lz77_encoder));
 	/* failed to allocate space for encoder. */
@@ -74,10 +74,10 @@ int lz77_free(struct lz77_encoder *encoder)
 
 int lz77_slide_window(struct lz77_encoder *encoder, int amount)
 {
-	int rd = 1;
-	while (amount-- > 0 && rd >= 1) {
+	int rd = 0;
+	while (amount-- > 0) {
 		int s = 0;
-		rd = fread(&s, sizeof(char), 1, encoder->input_stream);
+		rd += fread(&s, sizeof(char), 1, encoder->input_stream);
 		
 		/* end of file before amount reached, return bytes left. */
 		for (int i = 0; i < WINDOW_SIZE - 1; i++) {
@@ -190,7 +190,7 @@ void lz77_encode(struct lz77_encoding_tuple tup, struct lz77_encoder *encoder)
 void lz77_compress(char *input_filename, char *output_filename)
 {
 	struct lz77_encoder *encoder =
-		lz77_init(input_filename, output_filename);
+		lz77_encode_init(input_filename, output_filename);
 
 	while (encoder->sliding_window[LOOKAHEADBUF_INDEX + 1] != EOF) {
 		struct lz77_encoding_tuple tup = lz77_search_match(encoder);
@@ -198,7 +198,7 @@ void lz77_compress(char *input_filename, char *output_filename)
 		printf("(%d,%d)%c\n", tup.offset, tup.length, tup.symbol);
 		lz77_encode(tup, encoder);
 		int amount = lz77_slide_window(encoder, tup.length + 1);
-		if (amount != 1)
+		if (amount < tup.length + 1)
 			break;
 	} 
 	/* struct lz77_encoding_tuple tup = lz77_search_match(encoder); */
@@ -223,7 +223,6 @@ struct lz77_decoder *lz77_decoder_init(char *input_filename,
 	decoder->sliding_window[WINDOW_SIZE] = EOF;
 	return decoder;
 }
-
 int lz77_decoder_free(struct lz77_decoder *decoder)
 {
 	fclose(decoder->input_stream);
@@ -292,7 +291,7 @@ void lz77_decompress(char *input_filename, char *output_filename)
 int main()
 {
 	//struct lz77_encoder *encoder = lz77_init("bigfile2.txt", "bigfile2.txt.lz");
-	lz77_compress("test3.txt", "a");
+	lz77_compress("test2.txt", "a");
 	printf("---DECODE---\n");
 	lz77_decompress("a", "aa");
 	return 0;

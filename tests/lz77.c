@@ -2,34 +2,19 @@
 
 #include "lz77.h"
 
-/* #define WINDOW_SIZE 24 */
-/* #define SEARCHBUF_SIZE 14 */
-/* #define LENGTH_BITS 5 /\* MUST BE log2(WINDOW_SIZE) rounded up *\/ */
-/* #define OFFSET_BITS 4 /\* MUST BE log2(SEARCHBUF_SIZE) rounded up *\/ */
-/* #define SYMBOL_BITS 8 */
-
-/* #define WINDOW_SIZE 12 */
-/* #define SEARCHBUF_SIZE 7 */
-/* #define LENGTH_BITS 4 /\* MUST BE log2(WINDOW_SIZE) rounded up *\/ */
-/* #define OFFSET_BITS 3 /\* MUST BE log2(SEARCHBUF_SIZE) rounded up *\/ */
-/* #define SYMBOL_BITS 8 */
-
-/* #define WINDOW_SIZE 768 */
-/* #define SEARCHBUF_SIZE 448 */
-/* #define LENGTH_BITS 10 /\* MUST BE log2(WINDOW_SIZE) rounded up *\/ */
-/* #define OFFSET_BITS 9 /\* MUST BE log2(SEARCHBUF_SIZE) rounded up *\/ */
-/* #define SYMBOL_BITS 8 */
 
 
-#define WINDOW_SIZE 512
-#define SEARCHBUF_SIZE 256
-#define LENGTH_BITS 9 /* MUST BE log2(WINDOW_SIZE) rounded up */
-#define OFFSET_BITS 7 /* MUST BE log2(SEARCHBUF_SIZE) rounded up */
-#define SYMBOL_BITS 8
-
-
+#define WINDOW_SIZE 12
+//#define WINDOW_SIZE 512
+#define SEARCHBUF_SIZE 7
+//#define SEARCHBUF_SIZE 255
 #define LOOKAHEADBUF_SIZE \
 	WINDOW_SIZE - SEARCHBUF_SIZE /* the front end of the sliding window */
+//#define LENGTH_BITS 9 /* MUST BE log2(WINDOW_SIZE) rounded up */
+//#define OFFSET_BITS 8 /* MUST BE log2(SEARCHBUF_SIZE) rounded up */
+#define LENGTH_BITS 4 /* MUST BE log2(WINDOW_SIZE) rounded up */
+#define OFFSET_BITS 3 /* MUST BE log2(SEARCHBUF_SIZE) rounded up */
+#define SYMBOL_BITS 8
 
 #define SEARCHBUF_INDEX 0
 #define LOOKAHEADBUF_INDEX SEARCHBUF_SIZE
@@ -89,20 +74,12 @@ lz77 *lz77_encode_init(char *in, char *out)
 			   sizeof(char), LOOKAHEADBUF_SIZE,
 			   context->input_stream);
 
-	char *to_endp = context->sliding_window + LOOKAHEADBUF_INDEX + readed;
-	char *endp = context->sliding_window + LOOKAHEADBUF_SIZE +
-		     SEARCHBUF_SIZE + 1;
+	*(context->sliding_window + LOOKAHEADBUF_SIZE + SEARCHBUF_SIZE) = '\0';
 	
-	while (to_endp != endp) {
-		*to_endp = '\0';
-		to_endp++;
-	}
-//	*(context->sliding_window + LOOKAHEADBUF_SIZE + SEARCHBUF_SIZE) = '\0';
-	
-	/* if (readed < LOOKAHEADBUF_SIZE) */
-	/* 	context->status = INPUT_EOF; */
-	/* else */
-	context->status = NO_ERROR;
+	if (readed < LOOKAHEADBUF_SIZE)
+		context->status = INPUT_EOF;
+	else
+		context->status = NO_ERROR;
 
 	return context;
 }
@@ -209,10 +186,11 @@ void lz77_slide(char *window, int amount)
 {
 	while (amount-- > 0) {
 		/* end of file before amount reached, return bytes left. */
+		
 		for (int i = 0; i < WINDOW_SIZE-1; i++) {
 			window[i] = window[i + 1];
 		}
-		window[WINDOW_SIZE - 1] = '\0';
+		window[WINDOW_SIZE-1] = '\0';
 	}
 }
 
@@ -344,25 +322,23 @@ int decompress(char *in, char *out)
 			payload = (payload << 8) | *ep;
 			ep++;
 		}
-		
 		unsigned int bitmask = -1;
 		decoder->encoding.length = payload & (bitmask >> OFFSET_BITS);
 		decoder->encoding.offset = payload >> LENGTH_BITS;
 
 		printf("(%d, %d) %c\n", decoder->encoding.offset,
 		       decoder->encoding.length, decoder->encoding.symbol);
-
-		/* the encoding is same between compress and decompress but reading the encoding and writing
-		   it to file gives wrong output */
-		/* SEE BELOW */
+		
+		
+		char *offp = decoder->sliding_window + WINDOW_SIZE - decoder->encoding.offset;
 		times = decoder->encoding.length;
 
 		while (times--) {
-			char c = *(decoder->sliding_window + WINDOW_SIZE - decoder->encoding.offset);
+			char c = *offp;
 			fwrite(&c, sizeof(char), 1, decoder->output_stream);
 			lz77_decoder_slide_window(decoder, 1);
 			decoder->sliding_window[WINDOW_SIZE - 1] = c;
-			
+
 		}
 
 		lz77_decoder_slide_window(decoder, 1);
