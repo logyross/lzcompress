@@ -1,0 +1,16 @@
+ If my understanding is correct the rb mode is used because sometimes the file can be a spreadsheet and therefore the programs just want the information as in a text file.
+
+You seem uncertain, and though perhaps you do understand correctly, your explanation does not give me any confidence in that.
+
+C knows about two distinct kinds of streams: binary streams and text streams. A binary stream is simply an ordered sequence of bytes, written and / or read as-is without any kind of transformation. On the other hand, 
+
+For some implementations, such as POSIX-compliant ones, this is a distinction without a difference. For other implementations, such as those targeting Windows, the difference matters. In particular, on Windows, text streams convert on the fly between carriage-return / line-feed pairs in the external representation and newlines (only) in the internal representation.
+
+The b in your fopen() mode specifies that the file should be opened as a binary stream -- that is, no translation will be performed on the bytes read from the file. Whether this is the right thing to do depends on your environment and the application's requirements. This is moot on Linux or another Unix, however, as there is no observable difference between text and binary streams on such systems.
+
+dos2unix converts carriage-return / line-feed pairs in the input file to single line-feed (newline) characters. This will convert a Windows-style text file or one with mixed Windows / Unix line terminators to Unix text file convention. It is irreversible if there are both Windows-style and Unix-style line terminators in the file, and it is furthermore likely to corrupt your file if it is not a text file in the first place.
+
+If your inputs are sometimes binary files then opening in binary mode is appropriate, and conversion via dos2unix probably is not. If that's the case and you also need translation for text-file line terminators, then you first and foremost need a way to distinguish which case applies for any particular file -- for example, by command-line argument or by pre-analyzing the file via libmagic. You then must provide different handling for text files; your main options are
+
+    Perform the line terminator conversion in your own code.
+    Provide separate versions of the fetchFile() function for text and binary files.

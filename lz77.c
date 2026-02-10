@@ -2,34 +2,28 @@
 
 #include "lz77.h"
 
-/* #define WINDOW_SIZE 24 */
-/* #define SEARCHBUF_SIZE 14 */
-/* #define LENGTH_BITS 5 /\* MUST BE log2(WINDOW_SIZE) rounded up *\/ */
-/* #define OFFSET_BITS 4 /\* MUST BE log2(SEARCHBUF_SIZE) rounded up *\/ */
-/* #define SYMBOL_BITS 8 */
-
 /* #define WINDOW_SIZE 12 */
 /* #define SEARCHBUF_SIZE 7 */
 /* #define LENGTH_BITS 4 /\* MUST BE log2(WINDOW_SIZE) rounded up *\/ */
 /* #define OFFSET_BITS 3 /\* MUST BE log2(SEARCHBUF_SIZE) rounded up *\/ */
 /* #define SYMBOL_BITS 8 */
 
-/* #define WINDOW_SIZE 768 */
-/* #define SEARCHBUF_SIZE 448 */
-/* #define LENGTH_BITS 10 /\* MUST BE log2(WINDOW_SIZE) rounded up *\/ */
-/* #define OFFSET_BITS 9 /\* MUST BE log2(SEARCHBUF_SIZE) rounded up *\/ */
+/* #define WINDOW_SIZE 144 // 12 * 12 */
+/* #define SEARCHBUF_SIZE 84 // 12 * 7 */
+/* #define LENGTH_BITS 8 /\* MUST BE log2(WINDOW_SIZE) rounded up *\/ */
+/* #define OFFSET_BITS 7 /\* MUST BE log2(SEARCHBUF_SIZE) rounded up *\/ */
 /* #define SYMBOL_BITS 8 */
 
-
-#define WINDOW_SIZE 512
-#define SEARCHBUF_SIZE 256
-#define LENGTH_BITS 9 /* MUST BE log2(WINDOW_SIZE) rounded up */
-#define OFFSET_BITS 7 /* MUST BE log2(SEARCHBUF_SIZE) rounded up */
+// THIS NEEDS TO WORK
+#define WINDOW_SIZE 1728 // 12 * 12
+#define SEARCHBUF_SIZE 1008 // 12 * 7
+#define LENGTH_BITS 10 /* MUST BE log2(WINDOW_SIZE) rounded up */
+#define OFFSET_BITS 9 /* MUST BE log2(SEARCHBUF_SIZE) rounded up */
 #define SYMBOL_BITS 8
 
 
 #define LOOKAHEADBUF_SIZE \
-	WINDOW_SIZE - SEARCHBUF_SIZE /* the front end of the sliding window */
+	WINDOW_SIZE - SEARCHBUF_SIZE /* the front end of the sliding window */ // 12 * 5
 
 #define SEARCHBUF_INDEX 0
 #define LOOKAHEADBUF_INDEX SEARCHBUF_SIZE
@@ -296,6 +290,7 @@ int compress(char *in, char *out)
 		printf("(%d, %d) %c\n", encoder->encoding.offset,
 		       encoder->encoding.length, encoder->encoding.symbol);
 		// write to output stream
+		char c = encoder->encoding.symbol;
 		lz77_write(encoder);
 		lz77_slide(encoder->sliding_window,
 			   encoder->encoding.length + 1);
@@ -352,9 +347,6 @@ int decompress(char *in, char *out)
 		printf("(%d, %d) %c\n", decoder->encoding.offset,
 		       decoder->encoding.length, decoder->encoding.symbol);
 
-		/* the encoding is same between compress and decompress but reading the encoding and writing
-		   it to file gives wrong output */
-		/* SEE BELOW */
 		times = decoder->encoding.length;
 
 		while (times--) {
@@ -367,8 +359,6 @@ int decompress(char *in, char *out)
 
 		lz77_decoder_slide_window(decoder, 1);
 		decoder->sliding_window[WINDOW_SIZE - 1] = decoder->encoding.symbol;
-		//print_sliding_window_decoder(decoder);
-		//putc(tup.symbol, decoder->output_stream);
 		char c = decoder->encoding.symbol;
 		fwrite(&c, sizeof(char), 1, decoder->output_stream);
 	}
