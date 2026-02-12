@@ -2,15 +2,313 @@
 
 You seem uncertain, and though perhaps you do understand correctly, your explanation does not give me any confidence in that.
 
-C knows about two distinct kinds of streams: binary streams and text streams. A binary stream is simply an ordered sequence of bytes, written and / or read as-is without any kind of transformation. On the other hand, 
+C knows about two distinct kinds of streams: binary streams and text streams. A binary stream is
+simply an ordered sequence of bytes, written and / or read as-is without any kind of transformation. On the other hand, 
 
-For some implementations, such as POSIX-compliant ones, this is a distinction without a difference. For other implementations, such as those targeting Windows, the difference matters. In particular, on Windows, text streams convert on the fly between carriage-return / line-feed pairs in the external representation and newlines (only) in the internal representation.
+For some implementations, such as POSIX-compliant ones, this is a distinction without a difference. For other implementations, such as those targeting Windows, the
+difference matters. In particular, on Windows, text streams convert on the fly between carriage-return / line-feed pairs in the
+external representation and newlines (only) in the internal representation.
 
-The b in your fopen() mode specifies that the file should be opened as a binary stream -- that is, no translation will be performed on the bytes read from the file. Whether this is the right thing to do depends on your environment and the application's requirements. This is moot on Linux or another Unix, however, as there is no observable difference between text and binary streams on such systems.
+The b in your fopen() mode specifies that the file should be opened as a binary stream -- that is, no translation will be performed on the bytes read from
+the file. Whether this is the right thing to do depends on your environment and the application's requirements. This is moot on Linux or another Unix, however, as
+there is no observable difference between text and binary streams on such systems.
 
-dos2unix converts carriage-return / line-feed pairs in the input file to single line-feed (newline) characters. This will convert a Windows-style text file or one with mixed Windows / Unix line terminators to Unix text file convention. It is irreversible if there are both Windows-style and Unix-style line terminators in the file, and it is furthermore likely to corrupt your file if it is not a text file in the first place.
+dos2unix converts carriage-return / line-feed pairs in the input file to single line
+-feed (newline) characters. This will convert a Windows-style text file or one with mixed Windows / Unix line terminators
+to Unix text file convention. It is irreversible if there are both Windows-style and Unix-style line terminators in the file, and
+it is furthermore likely to corrupt your file if it is not a text file in the first place.
 
-If your inputs are sometimes binary files then opening in binary mode is appropriate, and conversion via dos2unix probably is not. If that's the case and you also need translation for text-file line terminators, then you first and foremost need a way to distinguish which case applies for any particular file -- for example, by command-line argument or by pre-analyzing the file via libmagic. You then must provide different handling for text files; your main options are
+If your inputs are sometimes binary files then opening in binary mode is appropriate, and conversion via dos2unix probably is not. If that's the case and you also need translation for
+text-file line terminators, then you first and foremost need a way to distinguish which case applies for any particular file -- for example, by command-line argument or by pre-analyzing
+the file via libmagic. You then must provide different handling for text files; your main options are
 
     Perform the line terminator conversion in your own code.
     Provide separate versions of the fetchFile() function for text and binary files.
+ I used to always install gentoo from stage 1 back in the 00s. But the rolling release model would always end up breaking on me when I went to update after a few months and I would
+ end up just starting over. Now stage1 and stage 2 are gone, which is interesting. It's been like 20 years since I used Gentoo which is crazy to think about. I ended up
+ falling in love with OS X late in my college career for the unix base and user space tools, but ability to run Office, Photoshop, and games (funny, seems Linux is much better for games
+ now than macOS, but that wasn't the case back then.) Thinking about trying it again on my lonely linux box. Apple Silicon is great and I'm fine with macOS, but it's definitely
+ not the exciting novelty it was 20 years ago and I'm starting to miss daily driving Linux. When I've used linux on and off for the
+ last 20 years it's mostly been Ubuntu just for ease. I want to try FreeBSD too.
+
+ 10:20 USE flags are not really a "solution", the "multiple packages" thing is just a problem source-based package managers typically do
+ not have. Apart from being runtime-configurable, open-source software is often very compile-time configurable as well (see things like  "./configure" and "meson.options"). USE flags oft
+ en map 1-to-1 to those compile-time flags, and as such they influence build time and storage space. Binary distros have to come up with a way to distribute/all the different flavors its
+ users might want their packages (ffmpeg with or without samba support? with or without bluray support? ...). So in my view, the "burden" of offering that freedom/choice is mostly with t
+ hem, not with source-based distros like Gentoo, in which "package" often equates to "open source project"/"source tarball" 
+
+
+Early 2000s teens - where you at?!? I remember this CD became RELIGION for us - bumpin' it every day in high school.  Top to bottom almost every track is fire, one of the greatest hip
+hop albums ever made.  I'm a high school history teacher now, and I have a 'song of the day' that I play for my students as they walk into class during passing periods.  Today this was
+my song of the day.  Every year I get some kid that comes up to me and says "Is this the guy from that Gorrilaz song?" I tell them hell ya it is, but to check out this entire album -
+its on another level.  I'm doing society some good and turning a new Deltron fan every year - THROUGH CENTURIES OF HIP HOP LEGACY! ;)
+
+  If my understanding is correct the rb mode is used because sometimes the file can be a spreadsheet and therefore the programs just want the information as in a text file.
+
+You seem uncertain, and though perhaps you do understand correctly, your explanation does not give me any confidence in that.
+
+C knows about two distinct kinds of streams: binary streams and text streams. A binary stream is
+simply an ordered sequence of bytes, written and / or read as-is without any kind of transformation. On the other hand, 
+
+For some implementations, such as POSIX-compliant ones, this is a distinction without a difference. For other implementations, such as those targeting Windows, the
+difference matters. In particular, on Windows, text streams convert on the fly between carriage-return / line-feed pairs in the
+external representation and newlines (only) in the internal representation.
+
+The b in your fopen() mode specifies that the file should be opened as a binary stream -- that is, no translation will be performed on the bytes read from
+the file. Whether this is the right thing to do depends on your environment and the application's requirements. This is moot on Linux or another Unix, however, as
+there is no observable difference between text and binary streams on such systems.
+
+dos2unix converts carriage-return / line-feed pairs in the input file to single line
+-feed (newline) characters. This will convert a Windows-style text file or one with mixed Windows / Unix line terminators
+to Unix text file convention. It is irreversible if there are both Windows-style and Unix-style line terminators in the file, and
+it is furthermore likely to corrupt your file if it is not a text file in the first place.
+
+If your inputs are sometimes binary files then opening in binary mode is appropriate, and conversion via dos2unix probably is not. If that's the case and you also need translation for
+text-file line terminators, then you first and foremost need a way to distinguish which case applies for any particular file -- for example, by command-line argument or by pre-analyzing
+the file via libmagic. You then must provide different handling for text files; your main options are
+
+    Perform the line terminator conversion in your own code.
+    Provide separate versions of the fetchFile() function for text and binary files.
+ I used to always install gentoo from stage 1 back in the 00s. But the rolling release model would always end up breaking on me when I went to update after a few months and I would
+ end up just starting over. Now stage1 and stage 2 are gone, which is interesting. It's been like 20 years since I used Gentoo which is crazy to think about. I ended up
+ falling in love with OS X late in my college career for the unix base and user space tools, but ability to run Office, Photoshop, and games (funny, seems Linux is much better for games
+ now than macOS, but that wasn't the case back then.) Thinking about trying it again on my lonely linux box. Apple Silicon is great and I'm fine with macOS, but it's definitely
+ not the exciting novelty it was 20 years ago and I'm starting to miss daily driving Linux. When I've used linux on and off for the
+ last 20 years it's mostly been Ubuntu just for ease. I want to try FreeBSD too.
+
+ 10:20 USE flags are not really a "solution", the "multiple packages" thing is just a problem source-based package managers typically do
+ not have. Apart from being runtime-configurable, open-source software is often very compile-time configurable as well (see things like  "./configure" and "meson.options"). USE flags oft
+ en map 1-to-1 to those compile-time flags, and as such they influence build time and storage space. Binary distros have to come up with a way to distribute/all the different flavors its
+ users might want their packages (ffmpeg with or without samba support? with or without bluray support? ...). So in my view, the "burden" of offering that freedom/choice is mostly with t
+ hem, not with source-based distros like Gentoo, in which "package" often equates to "open source project"/"source tarball" 
+
+
+Early 2000s teens - where you at?!? I remember this CD became RELIGION for us - bumpin' it every day in high school.  Top to bottom almost every track is fire, one of the greatest hip
+hop albums ever made.  I'm a high school history teacher now, and I have a 'song of the day' that I play for my students as they walk into class during passing periods.  Today this was
+my song of the day.  Every year I get some kid that comes up to me and says "Is this the guy from that Gorrilaz song?" I tell them hell ya it is, but to check out this entire album -
+its on another level.  I'm doing society some good and turning a new Deltron fan every year - THROUGH CENTURIES OF HIP HOP LEGACY! ;)
+
+ If my understanding is correct the rb mode is used because sometimes the file can be a spreadsheet and therefore the programs just want the information as in a text file.
+
+You seem uncertain, and though perhaps you do understand correctly, your explanation does not give me any confidence in that.
+
+C knows about two distinct kinds of streams: binary streams and text streams. A binary stream is
+simply an ordered sequence of bytes, written and / or read as-is without any kind of transformation. On the other hand, 
+
+For some implementations, such as POSIX-compliant ones, this is a distinction without a difference. For other implementations, such as those targeting Windows, the
+difference matters. In particular, on Windows, text streams convert on the fly between carriage-return / line-feed pairs in the
+external representation and newlines (only) in the internal representation.
+
+The b in your fopen() mode specifies that the file should be opened as a binary stream -- that is, no translation will be performed on the bytes read from
+the file. Whether this is the right thing to do depends on your environment and the application's requirements. This is moot on Linux or another Unix, however, as
+there is no observable difference between text and binary streams on such systems.
+
+dos2unix converts carriage-return / line-feed pairs in the input file to single line
+-feed (newline) characters. This will convert a Windows-style text file or one with mixed Windows / Unix line terminators
+to Unix text file convention. It is irreversible if there are both Windows-style and Unix-style line terminators in the file, and
+it is furthermore likely to corrupt your file if it is not a text file in the first place.
+
+If your inputs are sometimes binary files then opening in binary mode is appropriate, and conversion via dos2unix probably is not. If that's the case and you also need translation for
+text-file line terminators, then you first and foremost need a way to distinguish which case applies for any particular file -- for example, by command-line argument or by pre-analyzing
+the file via libmagic. You then must provide different handling for text files; your main options are
+
+    Perform the line terminator conversion in your own code.
+    Provide separate versions of the fetchFile() function for text and binary files.
+ I used to always install gentoo from stage 1 back in the 00s. But the rolling release model would always end up breaking on me when I went to update after a few months and I would
+ end up just starting over. Now stage1 and stage 2 are gone, which is interesting. It's been like 20 years since I used Gentoo which is crazy to think about. I ended up
+ falling in love with OS X late in my college career for the unix base and user space tools, but ability to run Office, Photoshop, and games (funny, seems Linux is much better for games
+ now than macOS, but that wasn't the case back then.) Thinking about trying it again on my lonely linux box. Apple Silicon is great and I'm fine with macOS, but it's definitely
+ not the exciting novelty it was 20 years ago and I'm starting to miss daily driving Linux. When I've used linux on and off for the
+ last 20 years it's mostly been Ubuntu just for ease. I want to try FreeBSD too.
+
+ 10:20 USE flags are not really a "solution", the "multiple packages" thing is just a problem source-based package managers typically do
+ not have. Apart from being runtime-configurable, open-source software is often very compile-time configurable as well (see things like  "./configure" and "meson.options"). USE flags oft
+ en map 1-to-1 to those compile-time flags, and as such they influence build time and storage space. Binary distros have to come up with a way to distribute/all the different flavors its
+ users might want their packages (ffmpeg with or without samba support? with or without bluray support? ...). So in my view, the "burden" of offering that freedom/choice is mostly with t
+ hem, not with source-based distros like Gentoo, in which "package" often equates to "open source project"/"source tarball" 
+
+
+Early 2000s teens - where you at?!? I remember this CD became RELIGION for us - bumpin' it every day in high school.  Top to bottom almost every track is fire, one of the greatest hip
+hop albums ever made.  I'm a high school history teacher now, and I have a 'song of the day' that I play for my students as they walk into class during passing periods.  Today this was
+my song of the day.  Every year I get some kid that comes up to me and says "Is this the guy from that Gorrilaz song?" I tell them hell ya it is, but to check out this entire album -
+its on another level.  I'm doing society some good and turning a new Deltron fan every year - THROUGH CENTURIES OF HIP HOP LEGACY! ;)
+
+ If my understanding is correct the rb mode is used because sometimes the file can be a spreadsheet and therefore the programs just want the information as in a text file.
+
+You seem uncertain, and though perhaps you do understand correctly, your explanation does not give me any confidence in that.
+
+C knows about two distinct kinds of streams: binary streams and text streams. A binary stream is
+simply an ordered sequence of bytes, written and / or read as-is without any kind of transformation. On the other hand, 
+
+For some implementations, such as POSIX-compliant ones, this is a distinction without a difference. For other implementations, such as those targeting Windows, the
+difference matters. In particular, on Windows, text streams convert on the fly between carriage-return / line-feed pairs in the
+external representation and newlines (only) in the internal representation.
+
+The b in your fopen() mode specifies that the file should be opened as a binary stream -- that is, no translation will be performed on the bytes read from
+the file. Whether this is the right thing to do depends on your environment and the application's requirements. This is moot on Linux or another Unix, however, as
+there is no observable difference between text and binary streams on such systems.
+
+dos2unix converts carriage-return / line-feed pairs in the input file to single line
+-feed (newline) characters. This will convert a Windows-style text file or one with mixed Windows / Unix line terminators
+to Unix text file convention. It is irreversible if there are both Windows-style and Unix-style line terminators in the file, and
+it is furthermore likely to corrupt your file if it is not a text file in the first place.
+
+If your inputs are sometimes binary files then opening in binary mode is appropriate, and conversion via dos2unix probably is not. If that's the case and you also need translation for
+text-file line terminators, then you first and foremost need a way to distinguish which case applies for any particular file -- for example, by command-line argument or by pre-analyzing
+the file via libmagic. You then must provide different handling for text files; your main options are
+
+    Perform the line terminator conversion in your own code.
+    Provide separate versions of the fetchFile() function for text and binary files.
+ I used to always install gentoo from stage 1 back in the 00s. But the rolling release model would always end up breaking on me when I went to update after a few months and I would
+ end up just starting over. Now stage1 and stage 2 are gone, which is interesting. It's been like 20 years since I used Gentoo which is crazy to think about. I ended up
+ falling in love with OS X late in my college career for the unix base and user space tools, but ability to run Office, Photoshop, and games (funny, seems Linux is much better for games
+ now than macOS, but that wasn't the case back then.) Thinking about trying it again on my lonely linux box. Apple Silicon is great and I'm fine with macOS, but it's definitely
+ not the exciting novelty it was 20 years ago and I'm starting to miss daily driving Linux. When I've used linux on and off for the
+ last 20 years it's mostly been Ubuntu just for ease. I want to try FreeBSD too.
+
+ 10:20 USE flags are not really a "solution", the "multiple packages" thing is just a problem source-based package managers typically do
+ not have. Apart from being runtime-configurable, open-source software is often very compile-time configurable as well (see things like  "./configure" and "meson.options"). USE flags oft
+ en map 1-to-1 to those compile-time flags, and as such they influence build time and storage space. Binary distros have to come up with a way to distribute/all the different flavors its
+ users might want their packages (ffmpeg with or without samba support? with or without bluray support? ...). So in my view, the "burden" of offering that freedom/choice is mostly with t
+ hem, not with source-based distros like Gentoo, in which "package" often equates to "open source project"/"source tarball" 
+
+
+Early 2000s teens - where you at?!? I remember this CD became RELIGION for us - bumpin' it every day in high school.  Top to bottom almost every track is fire, one of the greatest hip
+hop albums ever made.  I'm a high school history teacher now, and I have a 'song of the day' that I play for my students as they walk into class during passing periods.  Today this was
+my song of the day.  Every year I get some kid that comes up to me and says "Is this the guy from that Gorrilaz song?" I tell them hell ya it is, but to check out this entire album -
+its on another level.  I'm doing society some good and turning a new Deltron fan every year - THROUGH CENTURIES OF HIP HOP LEGACY! ;)
+
+ If my understanding is correct the rb mode is used because sometimes the file can be a spreadsheet and therefore the programs just want the information as in a text file.
+
+You seem uncertain, and though perhaps you do understand correctly, your explanation does not give me any confidence in that.
+
+C knows about two distinct kinds of streams: binary streams and text streams. A binary stream is
+simply an ordered sequence of bytes, written and / or read as-is without any kind of transformation. On the other hand, 
+
+For some implementations, such as POSIX-compliant ones, this is a distinction without a difference. For other implementations, such as those targeting Windows, the
+difference matters. In particular, on Windows, text streams convert on the fly between carriage-return / line-feed pairs in the
+external representation and newlines (only) in the internal representation.
+
+The b in your fopen() mode specifies that the file should be opened as a binary stream -- that is, no translation will be performed on the bytes read from
+the file. Whether this is the right thing to do depends on your environment and the application's requirements. This is moot on Linux or another Unix, however, as
+there is no observable difference between text and binary streams on such systems.
+
+dos2unix converts carriage-return / line-feed pairs in the input file to single line
+-feed (newline) characters. This will convert a Windows-style text file or one with mixed Windows / Unix line terminators
+to Unix text file convention. It is irreversible if there are both Windows-style and Unix-style line terminators in the file, and
+it is furthermore likely to corrupt your file if it is not a text file in the first place.
+
+If your inputs are sometimes binary files then opening in binary mode is appropriate, and conversion via dos2unix probably is not. If that's the case and you also need translation for
+text-file line terminators, then you first and foremost need a way to distinguish which case applies for any particular file -- for example, by command-line argument or by pre-analyzing
+the file via libmagic. You then must provide different handling for text files; your main options are
+
+    Perform the line terminator conversion in your own code.
+    Provide separate versions of the fetchFile() function for text and binary files.
+ I used to always install gentoo from stage 1 back in the 00s. But the rolling release model would always end up breaking on me when I went to update after a few months and I would
+ end up just starting over. Now stage1 and stage 2 are gone, which is interesting. It's been like 20 years since I used Gentoo which is crazy to think about. I ended up
+ falling in love with OS X late in my college career for the unix base and user space tools, but ability to run Office, Photoshop, and games (funny, seems Linux is much better for games
+ now than macOS, but that wasn't the case back then.) Thinking about trying it again on my lonely linux box. Apple Silicon is great and I'm fine with macOS, but it's definitely
+ not the exciting novelty it was 20 years ago and I'm starting to miss daily driving Linux. When I've used linux on and off for the
+ last 20 years it's mostly been Ubuntu just for ease. I want to try FreeBSD too.
+
+ 10:20 USE flags are not really a "solution", the "multiple packages" thing is just a problem source-based package managers typically do
+ not have. Apart from being runtime-configurable, open-source software is often very compile-time configurable as well (see things like  "./configure" and "meson.options"). USE flags oft
+ en map 1-to-1 to those compile-time flags, and as such they influence build time and storage space. Binary distros have to come up with a way to distribute/all the different flavors its
+ users might want their packages (ffmpeg with or without samba support? with or without bluray support? ...). So in my view, the "burden" of offering that freedom/choice is mostly with t
+ hem, not with source-based distros like Gentoo, in which "package" often equates to "open source project"/"source tarball" 
+
+
+Early 2000s teens - where you at?!? I remember this CD became RELIGION for us - bumpin' it every day in high school.  Top to bottom almost every track is fire, one of the greatest hip
+hop albums ever made.  I'm a high school history teacher now, and I have a 'song of the day' that I play for my students as they walk into class during passing periods.  Today this was
+my song of the day.  Every year I get some kid that comes up to me and says "Is this the guy from that Gorrilaz song?" I tell them hell ya it is, but to check out this entire album -
+its on another level.  I'm doing society some good and turning a new Deltron fan every year - THROUGH CENTURIES OF HIP HOP LEGACY! ;)
+
+ If my understanding is correct the rb mode is used because sometimes the file can be a spreadsheet and therefore the programs just want the information as in a text file.
+
+You seem uncertain, and though perhaps you do understand correctly, your explanation does not give me any confidence in that.
+
+C knows about two distinct kinds of streams: binary streams and text streams. A binary stream is
+simply an ordered sequence of bytes, written and / or read as-is without any kind of transformation. On the other hand, 
+
+For some implementations, such as POSIX-compliant ones, this is a distinction without a difference. For other implementations, such as those targeting Windows, the
+difference matters. In particular, on Windows, text streams convert on the fly between carriage-return / line-feed pairs in the
+external representation and newlines (only) in the internal representation.
+
+The b in your fopen() mode specifies that the file should be opened as a binary stream -- that is, no translation will be performed on the bytes read from
+the file. Whether this is the right thing to do depends on your environment and the application's requirements. This is moot on Linux or another Unix, however, as
+there is no observable difference between text and binary streams on such systems.
+
+dos2unix converts carriage-return / line-feed pairs in the input file to single line
+-feed (newline) characters. This will convert a Windows-style text file or one with mixed Windows / Unix line terminators
+to Unix text file convention. It is irreversible if there are both Windows-style and Unix-style line terminators in the file, and
+it is furthermore likely to corrupt your file if it is not a text file in the first place.
+
+If your inputs are sometimes binary files then opening in binary mode is appropriate, and conversion via dos2unix probably is not. If that's the case and you also need translation for
+text-file line terminators, then you first and foremost need a way to distinguish which case applies for any particular file -- for example, by command-line argument or by pre-analyzing
+the file via libmagic. You then must provide different handling for text files; your main options are
+
+    Perform the line terminator conversion in your own code.
+    Provide separate versions of the fetchFile() function for text and binary files.
+ I used to always install gentoo from stage 1 back in the 00s. But the rolling release model would always end up breaking on me when I went to update after a few months and I would
+ end up just starting over. Now stage1 and stage 2 are gone, which is interesting. It's been like 20 years since I used Gentoo which is crazy to think about. I ended up
+ falling in love with OS X late in my college career for the unix base and user space tools, but ability to run Office, Photoshop, and games (funny, seems Linux is much better for games
+ now than macOS, but that wasn't the case back then.) Thinking about trying it again on my lonely linux box. Apple Silicon is great and I'm fine with macOS, but it's definitely
+ not the exciting novelty it was 20 years ago and I'm starting to miss daily driving Linux. When I've used linux on and off for the
+ last 20 years it's mostly been Ubuntu just for ease. I want to try FreeBSD too.
+
+ 10:20 USE flags are not really a "solution", the "multiple packages" thing is just a problem source-based package managers typically do
+ not have. Apart from being runtime-configurable, open-source software is often very compile-time configurable as well (see things like  "./configure" and "meson.options"). USE flags oft
+ en map 1-to-1 to those compile-time flags, and as such they influence build time and storage space. Binary distros have to come up with a way to distribute/all the different flavors its
+ users might want their packages (ffmpeg with or without samba support? with or without bluray support? ...). So in my view, the "burden" of offering that freedom/choice is mostly with t
+ hem, not with source-based distros like Gentoo, in which "package" often equates to "open source project"/"source tarball" 
+
+
+Early 2000s teens - where you at?!? I remember this CD became RELIGION for us - bumpin' it every day in high school.  Top to bottom almost every track is fire, one of the greatest hip
+hop albums ever made.  I'm a high school history teacher now, and I have a 'song of the day' that I play for my students as they walk into class during passing periods.  Today this was
+my song of the day.  Every year I get some kid that comes up to me and says "Is this the guy from that Gorrilaz song?" I tell them hell ya it is, but to check out this entire album -
+its on another level.  I'm doing society some good and turning a new Deltron fan every year - THROUGH CENTURIES OF HIP HOP LEGACY! ;)
+
+ If my understanding is correct the rb mode is used because sometimes the file can be a spreadsheet and therefore the programs just want the information as in a text file.
+
+You seem uncertain, and though perhaps you do understand correctly, your explanation does not give me any confidence in that.
+
+C knows about two distinct kinds of streams: binary streams and text streams. A binary stream is
+simply an ordered sequence of bytes, written and / or read as-is without any kind of transformation. On the other hand, 
+
+For some implementations, such as POSIX-compliant ones, this is a distinction without a difference. For other implementations, such as those targeting Windows, the
+difference matters. In particular, on Windows, text streams convert on the fly between carriage-return / line-feed pairs in the
+external representation and newlines (only) in the internal representation.
+
+The b in your fopen() mode specifies that the file should be opened as a binary stream -- that is, no translation will be performed on the bytes read from
+the file. Whether this is the right thing to do depends on your environment and the application's requirements. This is moot on Linux or another Unix, however, as
+there is no observable difference between text and binary streams on such systems.
+
+dos2unix converts carriage-return / line-feed pairs in the input file to single line
+-feed (newline) characters. This will convert a Windows-style text file or one with mixed Windows / Unix line terminators
+to Unix text file convention. It is irreversible if there are both Windows-style and Unix-style line terminators in the file, and
+it is furthermore likely to corrupt your file if it is not a text file in the first place.
+
+If your inputs are sometimes binary files then opening in binary mode is appropriate, and conversion via dos2unix probably is not. If that's the case and you also need translation for
+text-file line terminators, then you first and foremost need a way to distinguish which case applies for any particular file -- for example, by command-line argument or by pre-analyzing
+the file via libmagic. You then must provide different handling for text files; your main options are
+
+    Perform the line terminator conversion in your own code.
+    Provide separate versions of the fetchFile() function for text and binary files.
+ I used to always install gentoo from stage 1 back in the 00s. But the rolling release model would always end up breaking on me when I went to update after a few months and I would
+ end up just starting over. Now stage1 and stage 2 are gone, which is interesting. It's been like 20 years since I used Gentoo which is crazy to think about. I ended up
+ falling in love with OS X late in my college career for the unix base and user space tools, but ability to run Office, Photoshop, and games (funny, seems Linux is much better for games
+ now than macOS, but that wasn't the case back then.) Thinking about trying it again on my lonely linux box. Apple Silicon is great and I'm fine with macOS, but it's definitely
+ not the exciting novelty it was 20 years ago and I'm starting to miss daily driving Linux. When I've used linux on and off for the
+ last 20 years it's mostly been Ubuntu just for ease. I want to try FreeBSD too.
+
+ 10:20 USE flags are not really a "solution", the "multiple packages" thing is just a problem source-based package managers typically do
+ not have. Apart from being runtime-configurable, open-source software is often very compile-time configurable as well (see things like  "./configure" and "meson.options"). USE flags oft
+ en map 1-to-1 to those compile-time flags, and as such they influence build time and storage space. Binary distros have to come up with a way to distribute/all the different flavors its
+ users might want their packages (ffmpeg with or without samba support? with or without bluray support? ...). So in my view, the "burden" of offering that freedom/choice is mostly with t
+ hem, not with source-based distros like Gentoo, in which "package" often equates to "open source project"/"source tarball" 
+
+
+Early 2000s teens - where you at?!? I remember this CD became RELIGION for us - bumpin' it every day in high school.  Top to bottom almost every track is fire, one of the greatest hip
+hop albums ever made.  I'm a high school history teacher now, and I have a 'song of the day' that I play for my students as they walk into class during passing periods.  Today this was
+my song of the day.  Every year I get some kid that comes up to me and says "Is this the guy from that Gorrilaz song?" I tell them hell ya it is, but to check out this entire album -
+its on another level.  I'm doing society some good and turning a new Deltron fan every year - THROUGH CENTURIES OF HIP HOP LEGACY! ;)
