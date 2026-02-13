@@ -1,16 +1,33 @@
 #include "lz77.h"
+#include <string.h>
 
-int main()
+
+/* usage:
+ * lzip77 input.txt output.lz (compresses to output.lz)
+ * lzip77 -u input.lz output (decompresses to output
+ */
+int main(int argc, char* argv[])
 {
-	compress("tests/test4.txt", "tests/test4.txt.lz");
-	printf("---\n");
-	decompress("tests/test4.txt.lz", "tests/xx");
+	int is_compress = 1;
+	if (!strcmp(argv[1], "-u")) {
+		printf("LOG --- -u spotted, this is a decompress call\n");
+		is_compress = 0;
+	}
 
-	/* compress("tests/lz77.c", "tests/lz77.c.2.lz"); */
-	/* compress("tests/bigfile.txt", "tests/bigfile.txt.2.lz"); */
-	/* compress("tests/bigfile2.txt", "tests/bigfile2.txt.2.lz"); */
-	/* printf("---\n"); */
+	if (is_compress && argc != 3) {
+		fprintf(stderr, "error, bad input\n");
+		return -1;
+	}
 
+	if (!is_compress && argc != 4) {
+		fprintf(stderr, "error, bad input\n");
+		return -1;
+	}
+	
+	if (is_compress)
+		compress(argv[1], argv[2]);
+	else 
+		decompress(argv[2], argv[3]);
 
 	return 0;
 }
