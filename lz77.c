@@ -10,7 +10,7 @@
 
 
 #define LOOKAHEADBUF_SIZE \
-	WINDOW_SIZE - SEARCHBUF_SIZE /* the front end of the sliding window */ // 12 * 5
+	WINDOW_SIZE - SEARCHBUF_SIZE /* the front end of the sliding window */
 
 #define SEARCHBUF_INDEX 0
 #define LOOKAHEADBUF_INDEX SEARCHBUF_SIZE
@@ -155,6 +155,26 @@ void lz77_slide(char *window, int amount)
 	}
 }
 
+void lz77_decode(lz77 *context, int times)
+{
+  times = context->encoding.length;
+
+  while (times--) {
+    char c = *(context->sliding_window + WINDOW_SIZE - context->encoding.offset);
+    fwrite(&c, sizeof(char), 1, context->output_stream);
+    lz77_slide(context->sliding_window, 1); 
+    context->sliding_window[WINDOW_SIZE - 1] = c;
+			
+  }
+
+  lz77_slide(context->sliding_window, 1); 
+  context->sliding_window[WINDOW_SIZE - 1] = context->encoding.symbol;
+  char c = context->encoding.symbol;
+  fwrite(&c, sizeof(char), 1, context->output_stream);
+
+}
+
+
 int lz77_read(lz77 *context, int amount)
 {
 	char *str = malloc(sizeof(char) * amount + 1);
@@ -192,13 +212,6 @@ int lz77_read_encoding(lz77 *context)
 	return fread(&context->encoding, sizeof(context->encoding), 1, context->input_stream);
 }
 
-void print_window(char *window)
-{
-	for (int i = 0; i < WINDOW_SIZE; i++)
-		printf("%c", *(window + i));
-	printf("\n");
-}
-
 int compress(char *in, char *out)
 {
 	lz77 *encoder = lz77_init(in, out, 1);
@@ -210,8 +223,8 @@ int compress(char *in, char *out)
 
 	while (*(encoder->sliding_window + LOOKAHEADBUF_INDEX) != '\0') {
 		lz77_search(encoder);
-		printf("(%d, %d) %c\n", encoder->encoding.offset,
-		       encoder->encoding.length, encoder->encoding.symbol);
+		/* printf("(%d, %d) %c\n", encoder->encoding.offset, */
+		/*        encoder->encoding.length, encoder->encoding.symbol); */
 
 		lz77_write(encoder);
 		lz77_slide(encoder->sliding_window, 
@@ -240,24 +253,11 @@ int decompress(char *in, char *out)
 		int rd = lz77_read_encoding(decoder);
 		if (rd != 1)
 			break;
+		
+		/* printf("(%d, %d) %c\n", decoder->encoding.offset, */
+		/*        decoder->encoding.length, decoder->encoding.symbol); */
 
-		printf("(%d, %d) %c\n", decoder->encoding.offset,
-		       decoder->encoding.length, decoder->encoding.symbol);
-
-		times = decoder->encoding.length;
-
-		while (times--) {
-			char c = *(decoder->sliding_window + WINDOW_SIZE - decoder->encoding.offset);
-			fwrite(&c, sizeof(char), 1, decoder->output_stream);
-			lz77_slide(decoder->sliding_window, 1); 
-			decoder->sliding_window[WINDOW_SIZE - 1] = c;
-			
-		}
-
-		lz77_slide(decoder->sliding_window, 1); 
-		decoder->sliding_window[WINDOW_SIZE - 1] = decoder->encoding.symbol;
-		char c = decoder->encoding.symbol;
-		fwrite(&c, sizeof(char), 1, decoder->output_stream);
+		lz77_decode(decoder, times);
 	}
 
 	lz77_free(decoder);
