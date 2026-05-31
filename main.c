@@ -11,6 +11,7 @@
 int main(int argc, char *argv[])
 {
 	int is_compress = 1;
+	// TODO: check arguments size before checking argv[1]
 	if (!strcmp(argv[1], "-u")) {
 		is_compress = 0;
 	}
