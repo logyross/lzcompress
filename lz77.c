@@ -14,7 +14,7 @@
 #define SEARCHBUF_INDEX 0
 #define LOOKAHEADBUF_INDEX SEARCHBUF_SIZE
 
-typedef struct lz77_context {
+ypedef struct lz77_context {
 	FILE *input_stream;
 	FILE *output_stream;
 	char *sliding_window;
