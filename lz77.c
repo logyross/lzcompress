@@ -14,10 +14,11 @@
 #define SEARCHBUF_INDEX 0
 #define LOOKAHEADBUF_INDEX SEARCHBUF_SIZE
 
-ypedef struct lz77_context {
+typedef struct lz77_context {
 	FILE *input_stream;
 	FILE *output_stream;
 	char *sliding_window;
+	int lookahead_buff_fullness;
 
 	struct lz77_encoding {
 		unsigned int offset : OFFSET_BITS;
@@ -41,7 +42,7 @@ lz77 *lz77_init(char *in, char *out, int is_compress)
 	if (context == NULL)
 		return NULL;
 
-	context->input_stream = fopen(in, "r");
+	context->input_stream = fopen(in, "rb");
 	if (context->input_stream == NULL) {
 		context->status = INPUT_STREAM_ERROR;
 		return context;
@@ -65,16 +66,18 @@ lz77 *lz77_init(char *in, char *out, int is_compress)
 		int read_mnt = fread(
 			context->sliding_window + LOOKAHEADBUF_INDEX,
 			sizeof(char), LOOKAHEADBUF_SIZE, context->input_stream);
-		char *start_p =
-			context->sliding_window + LOOKAHEADBUF_INDEX + read_mnt;
+		/* char *start_p = */
+		/* 	context->sliding_window + LOOKAHEADBUF_INDEX + read_mnt; */
 
-		char *end_p = context->sliding_window + LOOKAHEADBUF_SIZE +
-			      SEARCHBUF_SIZE + 1;
+		/* char *end_p = context->sliding_window + LOOKAHEADBUF_SIZE + */
+		/* 	      SEARCHBUF_SIZE + 1; */
 
-		while (start_p != end_p) {
-			*start_p = '\0';
-			start_p++;
-		}
+		context->lookahead_buff_fullness = read_mnt;
+		
+		/* while (start_p != end_p) { */
+		/* 	*start_p = '\0'; */
+		/* 	start_p++; */
+		/* } */
 	}
 	context->status = NO_ERROR;
 
@@ -118,16 +121,18 @@ void lz77_search(lz77 *context)
 	char last_symbol = '\0';
 
 	for (int i = SEARCHBUF_INDEX; i < SEARCHBUF_SIZE; i++) {
+		int limit = context->lookahead_buff_fullness;
 		char *lookahead_p =
 			context->sliding_window + LOOKAHEADBUF_INDEX;
 		char *search_p = context->sliding_window + i;
 		int curr_match = 0;
-		while (*lookahead_p != '\0' && *lookahead_p == *search_p) {
+		while (limit > 0 && *lookahead_p == *search_p) {
+			limit--;
 			lookahead_p++;
 			search_p++;
 			curr_match++;
 		}
-		if (*lookahead_p != '\0' && curr_match >= longest_match) {
+		if (limit > 0 && curr_match >= longest_match) {
 			longest_match = curr_match;
 			longest_match_offset = SEARCHBUF_SIZE - i;
 			last_symbol = *lookahead_p;
@@ -140,16 +145,18 @@ void lz77_search(lz77 *context)
 	context->encoding.offset = longest_match_offset;
 	context->encoding.length = longest_match;
 	context->encoding.symbol = last_symbol;
+//	printf("(%d, %d, %c)\n", longest_match_offset, longest_match, last_symbol);
 }
 
-void lz77_slide(char *window, int amount)
+void lz77_slide(lz77 *context, char *window, int amount)
 {
+	context->lookahead_buff_fullness -= amount;
 	while (amount-- > 0) {
 		for (int i = 0; i < WINDOW_SIZE - 1; i++) {
 			window[i] = window[i + 1];
 		}
-		window[WINDOW_SIZE - 1] = '\0';
 	}
+
 }
 
 void lz77_decode(lz77 *context, int times)
@@ -160,11 +167,11 @@ void lz77_decode(lz77 *context, int times)
 		char c = *(context->sliding_window + WINDOW_SIZE -
 			   context->encoding.offset);
 		fwrite(&c, sizeof(char), 1, context->output_stream);
-		lz77_slide(context->sliding_window, 1);
+		lz77_slide(context, context->sliding_window, 1);
 		context->sliding_window[WINDOW_SIZE - 1] = c;
 	}
 
-	lz77_slide(context->sliding_window, 1);
+	lz77_slide(context, context->sliding_window, 1);
 	context->sliding_window[WINDOW_SIZE - 1] = context->encoding.symbol;
 	char c = context->encoding.symbol;
 	fwrite(&c, sizeof(char), 1, context->output_stream);
@@ -176,18 +183,17 @@ int lz77_read(lz77 *context, int amount)
 
 	int rd = fread(str, sizeof(char), amount, context->input_stream);
 
-	str[rd] = '\0';
-	if (rd < amount)
-		context->status = INPUT_EOF;
-
 	char *lookahead_buff = context->sliding_window + SEARCHBUF_SIZE +
 			       LOOKAHEADBUF_SIZE - amount;
 
 	char *str_to_free = str;
-	while (*str != '\0' || *lookahead_buff != '\0') {
+	int rd_index = rd;
+	context->lookahead_buff_fullness += rd;
+	while (rd_index != 0) {
 		*lookahead_buff = *str;
 		str++;
 		lookahead_buff++;
+		rd_index--;
 	}
 
 	free(str_to_free);
@@ -203,11 +209,12 @@ int compress(char *in, char *out)
 		return 1;
 	}
 
-	while (*(encoder->sliding_window + LOOKAHEADBUF_INDEX) != '\0') {
+	//	while (*(encoder->sliding_window + LOOKAHEADBUF_INDEX) != '\0') {
+	while (encoder->lookahead_buff_fullness > 0) {
 		lz77_search(encoder);
 		fwrite(&encoder->encoding, sizeof(encoder->encoding), 1,
 		       encoder->output_stream);
-		lz77_slide(encoder->sliding_window,
+		lz77_slide(encoder, encoder->sliding_window,
 			   encoder->encoding.length + 1);
 		if (encoder->status != INPUT_EOF)
 			lz77_read(encoder, encoder->encoding.length + 1);
